@@ -8,9 +8,3 @@ const bootstrap = async () => {
 };
 
 bootstrap();
-
-
-
-
-// mongodb + srv://<db_username>:BqCKH9rLEPZ2f3SB@cluster0.wsurpgj.mongodb.net/
-

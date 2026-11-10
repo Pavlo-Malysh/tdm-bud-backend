@@ -12,8 +12,14 @@ const projectSchema = new Schema({
     },
     description: String,
     cover: {
-        type: String,
-        required: true
+        mobile: {
+            type: String,
+            required: true
+        },
+        desktop: {
+            type: String,
+            required: true
+        },
     },
     photos: [photoSchema],
 }, { timestamps: true, versionKey: false });
