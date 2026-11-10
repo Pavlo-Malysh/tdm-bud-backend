@@ -1,5 +1,6 @@
 import { ProjectsCollection } from "../db/models/project.js";
 import { ReviewsCollection } from "../db/models/reviews.js";
+import { LeadsCollection } from "../db/models/user.js";
 
 export const getAllProjects = async () => {
     const projects = await ProjectsCollection.find();
@@ -40,4 +41,14 @@ export const getAllReviews = async () => {
 export const createReview = async (payload) => {
     const review = await ReviewsCollection.create(payload);
     return review;
+};
+
+export const createLead = async (payload) => {
+    const lead = await LeadsCollection.create(payload);
+    return lead;
+};
+
+export const getAllLeads = async () => {
+    const leads = await LeadsCollection.find();
+    return leads;
 };

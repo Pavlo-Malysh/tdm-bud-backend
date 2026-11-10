@@ -1,5 +1,5 @@
 import createHttpError from 'http-errors';
-import { createProject, createReview, getAllProjects, getAllReviews, getProjectById, updateProject } from "../services/projects.js";
+import { createProject, getAllProjects, getProjectById, updateProject } from "../services/projects.js";
 
 
 export const getProjectsController = async (req, res) => {
@@ -49,26 +49,5 @@ export const patchProjectController = async (req, res, next) => {
         status: 200,
         message: "Successfuly patched a project!",
         data: result.project
-    });
-};
-
-
-export const getReviewsController = async (req, res) => {
-
-    const reviews = await getAllReviews();
-
-    res.status(200).json({
-        data: reviews,
-    });
-};
-
-
-export const createReviewController = async (req, res) => {
-    const review = await createReview(req.body);
-
-    res.status(201).json({
-        status: 201,
-        message: "Successfully created a review!",
-        data: review
     });
 };
