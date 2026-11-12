@@ -1,3 +1,4 @@
+import { notifyTelegram } from "../middlewares/notifyTelegram.js";
 import { createLead, getAllLeads } from "../services/projects.js";
 
 
@@ -20,4 +21,6 @@ export const createLeadController = async (req, res) => {
         message: "Successfully created a lead!",
         data: lead
     });
+
+    notifyTelegram(req.body);
 };
