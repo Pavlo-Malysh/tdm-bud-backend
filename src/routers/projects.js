@@ -3,6 +3,8 @@ import { createProjectController, getProjectByIdController, getProjectsControlle
 import { ctrlWrapper } from "../utils/ctrlWrapper.js";
 import { createReviewController, getReviewsController } from "../controllers/reviews.js";
 import { createLeadController, getLeadsController } from "../controllers/leads.js";
+import { validateBody } from "../middlewares/validateBody.js";
+import { createLeadSchema } from "../validation/project.js";
 
 const router = Router();
 
@@ -21,7 +23,7 @@ router.post("/projects", ctrlWrapper(createProjectController));
 
 router.post("/reviews", ctrlWrapper(createReviewController));
 
-router.post("/leads", ctrlWrapper(createLeadController));
+router.post("/leads", validateBody(createLeadSchema), ctrlWrapper(createLeadController));
 
 
 
