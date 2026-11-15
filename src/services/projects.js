@@ -1,54 +1,23 @@
-import { ProjectsCollection } from "../db/models/project.js";
-import { ReviewsCollection } from "../db/models/reviews.js";
-import { LeadsCollection } from "../db/models/user.js";
+import { ObjectId } from 'mongodb';
 
-export const getAllProjects = async () => {
-    const projects = await ProjectsCollection.find();
-    return projects;
+const col = (db) => db.collection('projects');
+
+export const getAllProjects = (db) => col(db).find().toArray();
+
+export const getProjectById = (db, id) =>
+    ObjectId.isValid(id) ? col(db).findOne({ _id: new ObjectId(id) }) : null;
+
+export const createProject = async (db, payload) => {
+    const doc = { ...payload, createdAt: new Date(), updatedAt: new Date() };
+    const { insertedId } = await col(db).insertOne(doc);
+    return { _id: insertedId, ...doc };
 };
 
-export const getProjectById = async (projectId) => {
-    const project = await ProjectsCollection.findById(projectId);
-    return project;
-};
-
-export const createProject = async (payload) => {
-    const project = await ProjectsCollection.create(payload);
-    return project;
-};
-
-export const updateProject = async (projectId, payload, options = {}) => {
-    const result = await ProjectsCollection.findOneAndUpdate({ _id: projectId }, payload, {
-        includeResultMetadata: true,
-        ...options,
-    });
-
-    if (!result || !result.value) return null;
-
-    return {
-        project: result.value,
-        isNew: Boolean(result?.lastErrorObject?.upserted),
-    };
-};
-
-
-export const getAllReviews = async () => {
-    const reviews = await ReviewsCollection.find();
-    return reviews;
-};
-
-
-export const createReview = async (payload) => {
-    const review = await ReviewsCollection.create(payload);
-    return review;
-};
-
-export const createLead = async (payload) => {
-    const lead = await LeadsCollection.create(payload);
-    return lead;
-};
-
-export const getAllLeads = async () => {
-    const leads = await LeadsCollection.find();
-    return leads;
-};
+export const updateProject = (db, id, payload) =>
+    ObjectId.isValid(id)
+        ? col(db).findOneAndUpdate(
+            { _id: new ObjectId(id) },
+            { $set: { ...payload, updatedAt: new Date() } },
+            { returnDocument: 'after' },
+        )
+        : null;
