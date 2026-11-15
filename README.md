@@ -1,73 +1,74 @@
 # TDM BUD Backend
 
-REST API for the website of the construction company **TDM BUD**. The server provides the project portfolio and client reviews, accepts requests (leads) from the website, and instantly sends a notification about each new lead to Telegram.
+REST API for the website of the construction company **TDM BUD**. It runs on **Cloudflare Workers**. The server provides the project portfolio and client reviews, accepts requests (leads) from the website, and sends a notification about each new lead to Telegram.
 
 ## Tech Stack
 
-- **Node.js** (ES Modules) + **Express 5**
-- **MongoDB** + **Mongoose**: data storage
+- **Cloudflare Workers** (`nodejs_compat`) + **Wrangler**
+- **Hono**: web framework (routing, CORS, error handling)
+- **MongoDB** (official `mongodb` driver): data storage
 - **Joi**: request body validation
-- **http-errors**: HTTP errors
-- **pino-http** / **pino-pretty**: request logging
-- **cors**, **dotenv**
-- **ESLint**, **Prettier**, **nodemon**: development tools
+- **ESLint**, **Prettier**: development tools
 
 ## Project Structure
 
 ```
 src/
-├── index.js                 # Entry point: connect to MongoDB → start the server
-├── server.js                # Express setup: middleware, routers, error handling
+├── index.js                 # Worker entry point: Hono app, CORS, routers, 404 and error handlers
 ├── routers/
-│   └── projects.js          # All API routes (projects, reviews, leads)
+│   ├── projects.js          # /projects routes
+│   ├── reviews.js           # /reviews routes
+│   └── leads.js             # /leads routes
 ├── controllers/
 │   ├── projects.js          # Project controllers
 │   ├── reviews.js           # Review controllers
-│   └── leads.js             # Lead controllers + Telegram notification call
+│   └── leads.js             # Lead controllers + Telegram notification
 ├── services/
-│   └── projects.js          # Database access (CRUD for all collections)
+│   ├── projects.js          # Database access for the projects collection
+│   ├── reviews.js           # Database access for the reviews collection
+│   ├── leads.js             # Database access for the leads collection
+│   └── telegram.js          # Sends a lead to a Telegram bot
 ├── db/
-│   ├── initMongoDB.js       # MongoDB Atlas connection
-│   └── models/
-│       ├── project.js       # Project model
-│       ├── reviews.js       # Review model
-│       └── user.js          # Lead model
+│   └── mongo.js             # MongoDB client (created once and reused between requests)
 ├── middlewares/
-│   ├── validateBody.js      # Validates req.body against a Joi schema
-│   ├── notifyTelegram.js    # Sends the lead to a Telegram bot
-│   ├── notFoundHandler.js   # 404 for unknown routes
-│   └── errorHandler.js      # Global error handler
-├── validation/
-│   └── project.js           # Joi schema for leads (createLeadSchema)
-└── utils/
-    ├── ctrlWrapper.js       # Controller wrapper (try/catch → next(err))
-    └── getEnvVar.js         # Reads environment variables with an optional default
+│   └── validateBody.js      # Validates the request body against a Joi schema
+└── validation/
+    └── project.js           # Joi schema for leads (createLeadSchema)
+wrangler.toml                # Worker configuration
 ```
+
+## How It Works
+
+- The MongoDB connection string is built from the Worker bindings `MONGODB_USER`, `MONGODB_PASSWORD`, `MONGODB_URL` and `MONGODB_DB`.
+- The Telegram notification uses `TG_TOKEN` and `TG_CHAT_ID`. If either is missing, no message is sent.
+- The notification runs through `executionCtx.waitUntil`, so the client gets the response without waiting for Telegram.
+- Every created document gets `createdAt` and `updatedAt`; `PATCH` refreshes `updatedAt`.
+- Only leads are validated. Projects and reviews are stored exactly as they are sent.
 
 ## API
 
-Base URL: `http://localhost:3000` (default port, configurable via `PORT`)
+Base URL: the Worker URL (`http://localhost:8787` when running `wrangler dev`).
 
 ### Projects
 
-| Method  | Route                   | Description                       |
-| ------- | ----------------------- | --------------------------------- |
-| `GET`   | `/projects`             | List all projects                 |
-| `GET`   | `/projects/:projectId`  | Get a project by ID (404 if none) |
-| `POST`  | `/projects`             | Create a project                  |
-| `PATCH` | `/projects/:projectId`  | Partially update a project        |
+| Method  | Route                   | Description                                    |
+| ------- | ----------------------- | ---------------------------------------------- |
+| `GET`   | `/projects`             | List all projects                              |
+| `GET`   | `/projects/:projectId`  | Get a project by ID (404 if not found)         |
+| `POST`  | `/projects`             | Create a project                               |
+| `PATCH` | `/projects/:projectId`  | Partially update a project (404 if not found)  |
 
-`Project` model:
+Example project:
 
 ```json
 {
-  "title": "string (required)",
+  "title": "string",
   "description": "string",
   "cover": {
-    "mobile": "string URL (required)",
-    "desktop": "string URL (required)"
+    "mobile": "string URL",
+    "desktop": "string URL"
   },
-  "photos": [{ "url": "string (required)", "caption": "string" }]
+  "photos": [{ "url": "string", "caption": "string" }]
 }
 ```
 
@@ -78,13 +79,13 @@ Base URL: `http://localhost:3000` (default port, configurable via `PORT`)
 | `GET`  | `/reviews` | List all reviews |
 | `POST` | `/reviews` | Create a review  |
 
-`Review` model:
+Example review:
 
 ```json
 {
-  "title": "string (required)",
+  "title": "string",
   "description": "string",
-  "cover": "string URL (required)"
+  "cover": "string URL"
 }
 ```
 
@@ -121,34 +122,32 @@ After the lead is saved, the bot sends this message to Telegram (in Ukrainian):
 📞 Телефон: +380671234567
 ```
 
-MongoDB adds the `createdAt` and `updatedAt` timestamps automatically.
-
 ## Response Format
 
-Successful creation (`201`):
+Success (`200`):
+
+```json
+{ "status": 200, "data": [ ... ] }
+```
+
+Creation (`201`):
 
 ```json
 {
   "status": 201,
   "message": "Successfully created a lead!",
-  "data": { "...": "..." }
+  "data": { "_id": "...", "...": "..." }
 }
-```
-
-List retrieval (`200`):
-
-```json
-{ "data": [ ... ] }
 ```
 
 Errors:
 
-| Code  | When                    | Body                                                                           |
-| ----- | ----------------------- | ------------------------------------------------------------------------------ |
-| `400` | Validation failed       | `{ "status": 400, "message": "BadRequestError", "data": { "errors": [...] } }` |
-| `404` | Resource not found      | `{ "status": 404, "message": "NotFoundError", "data": {...} }`                 |
-| `404` | Unknown route           | `{ "message": "Route not found" }`                                             |
-| `500` | Any other server error  | `{ "status": 500, "message": "Something went wrong", "data": "<error message>" }` |
+| Code  | When                    | Body                                                       |
+| ----- | ----------------------- | ---------------------------------------------------------- |
+| `400` | Validation failed       | `{ "status": 400, "message": "Bad Request", "errors": [...] }` |
+| `404` | Project not found       | `{ "status": 404, "message": "Project not found" }`        |
+| `404` | Unknown route           | `{ "status": 404, "message": "Route not found" }`          |
+| `500` | Any other server error  | `{ "status": 500, "message": "Something went wrong" }`     |
 
 ## Author
 

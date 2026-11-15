@@ -1,12 +1,12 @@
 {
   "name": "tdm-bud-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
     "lint": "eslint src/**/*.js",
-    "start": "node ./src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "repository": {
     "type": "git",
@@ -24,13 +24,10 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
-    "nodemon": "^3.1.14",
     "wrangler": "^4.162.0"
   },
   "dependencies": {
-    "dotenv": "^18.0.9",
     "hono": "^4.13.18",
-    "http-errors": "^2.0.1",
     "joi": "^18.3.2",
     "mongodb": "^7.9.0"
   }
