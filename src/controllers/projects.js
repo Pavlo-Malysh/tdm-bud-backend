@@ -1,53 +1,34 @@
-import createHttpError from 'http-errors';
-import { createProject, getAllProjects, getProjectById, updateProject } from "../services/projects.js";
+import { HTTPException } from 'hono/http-exception';
+import { getDb } from '../db/mongo.js';
+import {
+    getAllProjects,
+    getProjectById,
+    createProject,
+    updateProject,
+} from '../services/projects.js';
 
-
-export const getProjectsController = async (req, res) => {
-
-    const projects = await getAllProjects();
-
-    res.status(200).json({
-        data: projects,
-    });
+export const getProjectsController = async (c) => {
+    const projects = await getAllProjects(await getDb(c.env));
+    return c.json({ status: 200, data: projects });
 };
 
-export const getProjectByIdController = async (req, res, next) => {
-    const { projectId } = req.params;
-    const project = await getProjectById(projectId);
-
-    if (!project) {
-        throw createHttpError(404, 'Project not found');;
-    }
-
-    res.status(200).json({
-        status: 200,
-        message: `Successfully found project with id ${projectId}`,
-        data: project
-    });
+export const getProjectByIdController = async (c) => {
+    const project = await getProjectById(await getDb(c.env), c.req.param('projectId'));
+    if (!project) throw new HTTPException(404, { message: 'Project not found' });
+    return c.json({ status: 200, data: project });
 };
 
-export const createProjectController = async (req, res) => {
-    const project = await createProject(req.body);
-
-    res.status(201).json({
-        status: 201,
-        message: "Successfully created a project!",
-        data: project
-    });
+export const createProjectController = async (c) => {
+    const project = await createProject(await getDb(c.env), await c.req.json());
+    return c.json({ status: 201, message: 'Successfully created a project!', data: project }, 201);
 };
 
-export const patchProjectController = async (req, res, next) => {
-    const { projectId } = req.params;
-    const result = await updateProject(projectId, req.body);
-
-    if (!result) {
-        next(createHttpError(404, "Project not found"));
-        return;
-    }
-
-    res.json({
-        status: 200,
-        message: "Successfuly patched a project!",
-        data: result.project
-    });
+export const patchProjectController = async (c) => {
+    const project = await updateProject(
+        await getDb(c.env),
+        c.req.param('projectId'),
+        await c.req.json(),
+    );
+    if (!project) throw new HTTPException(404, { message: 'Project not found' });
+    return c.json({ status: 200, message: 'Successfully patched a project!', data: project });
 };

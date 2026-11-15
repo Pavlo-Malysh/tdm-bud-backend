@@ -1,10 +1,29 @@
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { HTTPException } from 'hono/http-exception';
+import projectsRouter from './routers/projects.js';
+import reviewsRouter from './routers/reviews.js';
+import leadsRouter from './routers/leads.js';
 
-import { initMongoDB } from './db/initMongoDB.js';
-import { startServer } from './server.js';
+const app = new Hono();
 
-const bootstrap = async () => {
-    await initMongoDB();
-    startServer();
-};
+app.use('*', cors());
 
-bootstrap();
+app.route('/projects', projectsRouter);
+app.route('/reviews', reviewsRouter);
+app.route('/leads', leadsRouter);
+
+app.notFound((c) => c.json({ status: 404, message: 'Route not found' }, 404));
+
+app.onError((err, c) => {
+    if (err instanceof HTTPException) {
+        return c.json(
+            { status: err.status, message: err.message, errors: err.cause },
+            err.status,
+        );
+    }
+    console.error(err);
+    return c.json({ status: 500, message: 'Something went wrong' }, 500);
+});
+
+export default app;

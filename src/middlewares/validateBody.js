@@ -1,19 +1,14 @@
-import createHttpError from 'http-errors';
+import { HTTPException } from 'hono/http-exception';
 
-export const validateBody = (schema) => async (req, res, next) => {
+export const validateBody = (schema) => async (c, next) => {
     try {
-        const value = await schema.validateAsync(req.body, {
+        const value = await schema.validateAsync(await c.req.json(), {
             abortEarly: false,
             stripUnknown: true,
         });
-        req.body = value;
-        next();
-
+        c.set('body', value);
     } catch (err) {
-        const error = createHttpError(400, 'Bad Request', {
-            errors: err.details,
-        });
-        next(error);
+        throw new HTTPException(400, { message: 'Bad Request', cause: err.details });
     }
+    await next();
 };
-

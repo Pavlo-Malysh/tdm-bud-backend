@@ -1,5 +1,5 @@
-export async function notifyTelegram(lead) {
-    const { TG_TOKEN, TG_CHAT_ID } = process.env;
+export async function notifyTelegram(env, lead) {
+    const { TG_TOKEN, TG_CHAT_ID } = env;
     if (!TG_TOKEN || !TG_CHAT_ID) return;
 
     const text =
