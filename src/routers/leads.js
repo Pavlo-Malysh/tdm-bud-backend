@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { getLeadsController, createLeadController } from '../controllers/leads.js';
+import {  createLeadController } from '../controllers/leads.js';
 import { validateBody } from '../middlewares/validateBody.js';
 import { createLeadSchema } from '../validation/project.js';
 
