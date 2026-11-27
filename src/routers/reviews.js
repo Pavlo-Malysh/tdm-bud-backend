@@ -4,6 +4,6 @@ import { getReviewsController, createReviewController } from '../controllers/rev
 const router = new Hono();
 
 router.get('/', getReviewsController);
-router.post('/', createReviewController);
+// router.post('/', createReviewController);
 
 export default router;

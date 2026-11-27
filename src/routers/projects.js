@@ -10,7 +10,7 @@ const router = new Hono();
 
 router.get('/', getProjectsController);
 router.get('/:projectId', getProjectByIdController);
-router.post('/', createProjectController);
-router.patch('/:projectId', patchProjectController);
+// router.post('/', createProjectController);
+// router.patch('/:projectId', patchProjectController);
 
 export default router;
