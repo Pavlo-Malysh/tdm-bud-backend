@@ -5,7 +5,7 @@ import { createLeadSchema } from '../validation/project.js';
 
 const router = new Hono();
 
-router.get('/', getLeadsController);
+// router.get('/', getLeadsController);
 router.post('/', validateBody(createLeadSchema), createLeadController);
 
 export default router;
